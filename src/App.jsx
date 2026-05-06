@@ -9,7 +9,7 @@ import {
   FileText, BookOpen, BarChart3, Receipt, Wallet,
   AlertCircle, Briefcase, Package,
   ScrollText, FileSignature, KeyRound, ClipboardCheck,
-  ArrowRight, Moon
+  ArrowRight, Moon, Trophy, ShoppingCart, Star, HardHat, Lock, PlayCircle, Building2, Sofa, Radio, Boxes, Paintbrush, MonitorPlay, Volume2, Smile, UserPlus, ChevronRight, RotateCcw
 } from 'lucide-react';
 
 /* ============================================================
@@ -34,6 +34,7 @@ const DICT = {
     'tab.pipeline':    'Pipeline',
     'tab.calculadora': 'Calculadora',
     'tab.recursos':    'Recursos',
+    'tab.jogo':        'Jogo',
     // Pipeline
     'pipeline.search':       'Buscar leads, @ ou notas',
     'pipeline.newLead':      'Novo lead',
@@ -227,6 +228,7 @@ const DICT = {
     'tab.pipeline':    'Pipeline',
     'tab.calculadora': 'Calculator',
     'tab.recursos':    'Features',
+    'tab.jogo':        'Game',
     'pipeline.search':       'Search leads, @ or notes',
     'pipeline.newLead':      'New lead',
     'pipeline.stat.active':  'Active leads',
@@ -642,7 +644,7 @@ export default function App() {
   }), [lang]);
 
   // App-level state
-  const [tab, setTab] = useState('pipeline');
+  const [tab, setTab] = useState('jogo');
   const [leads, setLeads] = useState(seed);
   const [loaded, setLoaded] = useState(false);
   const [toast, setToast] = useState(null);
@@ -686,6 +688,7 @@ export default function App() {
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif' }}
         >
           <Header tab={tab} setTab={setTab} />
+          {tab === 'jogo'        && <GameView />}
           {tab === 'pipeline'    && <PipelineView leads={leads} setLeads={setLeads} />}
           {tab === 'calculadora' && <CalculatorView addLead={addLead} setTab={setTab} showToast={showToast} />}
           {tab === 'recursos'    && <RecursosView setTab={setTab} />}
@@ -732,6 +735,7 @@ function Header({ tab, setTab }) {
         </button>
 
         <nav className={`flex items-center gap-1 rounded-full p-1 ${isDark ? 'bg-white/[0.04]' : 'bg-stone-100/80'}`}>
+          <TabBtn active={tab === 'jogo'}        onClick={() => setTab('jogo')}>        <Building2 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('tab.jogo')}</span></TabBtn>
           <TabBtn active={tab === 'pipeline'}    onClick={() => setTab('pipeline')}>    <Layout className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('tab.pipeline')}</span></TabBtn>
           <TabBtn active={tab === 'calculadora'} onClick={() => setTab('calculadora')}> <Calculator className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('tab.calculadora')}</span></TabBtn>
           <TabBtn active={tab === 'recursos'}    onClick={() => setTab('recursos')}>    <Grid3x3 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('tab.recursos')}</span></TabBtn>
@@ -1825,6 +1829,318 @@ function PrintableProposal({ calc, calculo }) {
         <span>{t('pdf.footer')}</span>
         <span>{todayLocale(lang)}</span>
       </div>
+    </div>
+  );
+}
+
+
+/* ============================================================
+   FRAME UP TYCOON GAME VIEW
+============================================================ */
+
+const GAME_ROOMS = {
+  recepcao: { name: 'Recepção', icon: Building2, color: 'from-amber-500 to-orange-600', revenue: 220, reputation: 0.1, clients: 1, buildCost: 0, floor: 1 },
+  showroom: { name: 'Loja / Showroom', icon: ShoppingCart, color: 'from-yellow-500 to-amber-700', revenue: 260, reputation: 0.1, clients: 1, buildCost: 0, floor: 1 },
+  foto: { name: 'Estúdio Fotográfico', icon: Camera, color: 'from-stone-300 to-stone-500', revenue: 430, reputation: 0.2, clients: 2, buildCost: 2400, floor: 2 },
+  video: { name: 'Estúdio de Vídeo', icon: Film, color: 'from-emerald-500 to-green-800', revenue: 650, reputation: 0.25, clients: 2, buildCost: 3600, floor: 3 },
+  edicao: { name: 'Edição / Color Grading', icon: Scissors, color: 'from-sky-500 to-violet-700', revenue: 820, reputation: 0.3, clients: 3, buildCost: 5200, floor: 4 },
+  estoque: { name: 'Estoque de Equipamentos', icon: Boxes, color: 'from-zinc-500 to-stone-800', revenue: 760, reputation: 0.2, clients: 2, buildCost: 5800, floor: 5 },
+  podcast: { name: 'Podcast / Live', icon: Mic, color: 'from-fuchsia-600 to-purple-900', revenue: 1050, reputation: 0.35, clients: 3, buildCost: 7800, floor: 6 },
+  camarim: { name: 'Maquiagem / Camarim', icon: Smile, color: 'from-rose-400 to-orange-700', revenue: 980, reputation: 0.45, clients: 3, buildCost: 8200, floor: 7 },
+  direcao: { name: 'Direção Criativa', icon: Palette, color: 'from-orange-300 to-stone-700', revenue: 1350, reputation: 0.55, clients: 4, buildCost: 12000, floor: 8 },
+  expansao: { name: 'Expansão Premium', icon: Star, color: 'from-indigo-500 to-slate-900', revenue: 1700, reputation: 0.7, clients: 4, buildCost: 18000, floor: 9 },
+  rooftop: { name: 'Rooftop de Produção', icon: Trophy, color: 'from-cyan-400 to-blue-900', revenue: 2300, reputation: 1, clients: 5, buildCost: 26000, floor: 10 },
+};
+
+const GAME_FLOORS = [
+  { n: 10, room: 'rooftop', side: 'right' },
+  { n: 9, room: 'expansao', side: 'left' },
+  { n: 8, room: 'direcao', side: 'left' },
+  { n: 7, room: 'camarim', side: 'right' },
+  { n: 6, room: 'podcast', side: 'left' },
+  { n: 5, room: 'estoque', side: 'right' },
+  { n: 4, room: 'edicao', side: 'left' },
+  { n: 3, room: 'video', side: 'left' },
+  { n: 2, room: 'foto', side: 'left' },
+  { n: 1, room: 'recepcao', secondary: 'showroom', side: 'both' },
+];
+
+const SHOP_ITEMS = [
+  { id: 'sofa', name: 'Sofá Loft', icon: Sofa, cost: 1250, reputation: 0.2 },
+  { id: 'neon', name: 'Pôster Neon', icon: Radio, cost: 350, reputation: 0.15 },
+  { id: 'planta', name: 'Planta Grande', icon: Sparkles, cost: 450, reputation: 0.1 },
+  { id: 'rack', name: 'Estante Industrial', icon: Boxes, cost: 950, reputation: 0.18 },
+  { id: 'luz', name: 'Luminária de Chão', icon: Sun, cost: 420, reputation: 0.12 },
+  { id: 'tapete', name: 'Tapete Estúdio', icon: Paintbrush, cost: 380, reputation: 0.1 },
+  { id: 'monitor', name: 'Monitores de Edição', icon: MonitorPlay, cost: 1600, reputation: 0.25 },
+  { id: 'audio', name: 'Kit Áudio Pro', icon: Volume2, cost: 2100, reputation: 0.3 },
+];
+
+const PROJECTS = [
+  { name: 'Comercial bebida', payout: 1450, xp: 700, energy: 16, rep: 0.15 },
+  { name: 'Clipe musical', payout: 2300, xp: 1100, energy: 24, rep: 0.25 },
+  { name: 'Campanha fashion', payout: 3200, xp: 1500, energy: 32, rep: 0.35 },
+];
+
+const GAME_DAYS_PER_WEEK = 7;
+const GAME_DAYS_PER_MONTH = 30;
+
+const getGameCalendar = (gameDay = 1) => {
+  const safeDay = Math.max(1, gameDay);
+  const weekDay = ((safeDay - 1) % GAME_DAYS_PER_WEEK) + 1;
+  const month = Math.floor((safeDay - 1) / GAME_DAYS_PER_WEEK) + 1;
+  const monthDay = Math.round(((weekDay - 1) / (GAME_DAYS_PER_WEEK - 1)) * (GAME_DAYS_PER_MONTH - 1)) + 1;
+
+  return { month, weekDay, monthDay };
+};
+
+const advanceGameDay = (state, logEntry) => ({
+  ...state,
+  gameDay: (state.gameDay || 1) + 1,
+  log: [logEntry, ...state.log].slice(0, 4),
+});
+
+const freshGameState = () => ({
+  cash: 128750,
+  xp: 8250,
+  level: 18,
+  staff: 24,
+  maxStaff: 30,
+  energy: 86,
+  maxEnergy: 100,
+  reputation: 4.7,
+  clients: 5,
+  built: [],
+  inventory: [],
+  completedProjects: 0,
+  missionClaims: [],
+  activeProject: { index: 0, progress: 62 },
+  gameDay: 1,
+  log: ['Novo jogo pronto: cada semana de 7 dias de jogo equivale a 1 mês de 30 dias.'],
+});
+
+const GAME_MISSIONS = [
+  { id: 'commercial', title: 'Grave um comercial', target: 1, reward: 1200, type: 'projects' },
+  { id: 'stars', title: 'Alcance 5 estrelas de reputação', target: 5, reward: 800, type: 'reputation' },
+  { id: 'editors', title: 'Contrate 2 editores', target: 26, reward: 600, type: 'staff' },
+  { id: 'tower', title: 'Desbloqueie os andares 9 e 10', target: 11, reward: 3500, type: 'built' },
+];
+
+function GameView() {
+  const [game, setGame] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('claqui:frame-up-game'));
+      if (saved && Array.isArray(saved.built)) return { ...freshGameState(), ...saved };
+    } catch (e) {}
+    return freshGameState();
+  });
+  const [selected, setSelected] = useState('foto');
+  const [shopTab, setShopTab] = useState('decor');
+
+  useEffect(() => {
+    try { localStorage.setItem('claqui:frame-up-game', JSON.stringify(game)); } catch (e) {}
+  }, [game]);
+
+  const stats = useMemo(() => {
+    const rooms = game.built.map(id => GAME_ROOMS[id]).filter(Boolean);
+    const hourly = rooms.reduce((sum, room) => sum + room.revenue, 0);
+    return { hourly };
+  }, [game.built]);
+
+
+  const buildRoom = (roomId) => {
+    const room = GAME_ROOMS[roomId];
+    if (!room || game.built.includes(roomId) || game.cash < room.buildCost) return;
+    setGame(g => ({
+      ...g,
+      cash: g.cash - room.buildCost,
+      built: [...g.built, roomId],
+      clients: Math.min(30, g.clients + room.clients),
+      xp: g.xp + 450,
+      log: [`${room.name} construído no andar ${room.floor}.`, ...g.log].slice(0, 4),
+    }));
+  };
+
+  const buyItem = (item) => {
+    if (game.inventory.includes(item.id) || game.cash < item.cost) return;
+    setGame(g => ({
+      ...g,
+      cash: g.cash - item.cost,
+      inventory: [...g.inventory, item.id],
+      reputation: Math.min(5, +(g.reputation + item.reputation).toFixed(2)),
+      log: [`${item.name} comprado para decorar o estúdio.`, ...g.log].slice(0, 4),
+    }));
+  };
+
+  const runProject = () => {
+    const project = PROJECTS[game.activeProject.index];
+    if (game.energy < project.energy) return;
+    setGame(g => {
+      const nextProgress = Math.min(100, g.activeProject.progress + 19);
+      const completed = nextProgress >= 100;
+      const nextIndex = completed ? (g.activeProject.index + 1) % PROJECTS.length : g.activeProject.index;
+      return advanceGameDay({
+        ...g,
+        cash: g.cash + (completed ? project.payout : Math.round(stats.hourly * 0.12)),
+        xp: g.xp + (completed ? project.xp : 140),
+        energy: g.energy - project.energy,
+        reputation: Math.min(5, +(g.reputation + (completed ? project.rep : 0.03)).toFixed(2)),
+        completedProjects: g.completedProjects + (completed ? 1 : 0),
+        activeProject: { index: nextIndex, progress: completed ? 12 : nextProgress },
+      }, completed ? `${project.name} entregue. +1 dia de jogo: 1 semana fecha 1 mês de 30 dias.` : `${project.name} avançou para ${nextProgress}%. +1 dia de jogo.`);
+    });
+  };
+
+  const hireStaff = () => {
+    if (game.staff >= game.maxStaff || game.cash < 900) return;
+    setGame(g => ({ ...g, cash: g.cash - 900, staff: g.staff + 1, log: ['Novo editor contratado para a equipe.', ...g.log].slice(0, 4) }));
+  };
+
+  const recharge = () => setGame(g => advanceGameDay({ ...g, energy: g.maxEnergy }, 'Dia de descanso: energia recarregada. +1 dia de jogo.'));
+  const reset = () => setGame(freshGameState());
+
+  const claimMission = (mission) => {
+    const value = missionProgress(mission, game);
+    if (value < mission.target || game.missionClaims.includes(mission.id)) return;
+    setGame(g => ({ ...g, cash: g.cash + mission.reward, missionClaims: [...g.missionClaims, mission.id], log: [`Missão concluída: ${mission.title}.`, ...g.log].slice(0, 4) }));
+  };
+
+  const currentProject = PROJECTS[game.activeProject.index];
+  const calendar = getGameCalendar(game.gameDay);
+
+  return (
+    <main className="min-h-[calc(100vh-65px)] overflow-hidden bg-[#0f2744] text-white no-print">
+      <div className="relative min-h-[calc(100vh-65px)] px-4 py-4 lg:px-6 bg-[radial-gradient(circle_at_50%_20%,rgba(91,166,255,0.35),transparent_35%),linear-gradient(180deg,#173e68_0%,#0f2744_58%,#17263c_100%)]">
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-slate-950/75 to-transparent" />
+        <GameTopBar game={game} calendar={calendar} reset={reset} />
+
+        <div className="relative z-10 grid grid-cols-1 xl:grid-cols-[190px_minmax(720px,1fr)_300px] gap-4 mt-3 items-start">
+          <GameMissions game={game} claimMission={claimMission} />
+          <section>
+            <div className="rounded-[28px] border border-white/15 bg-slate-950/20 p-3 shadow-2xl backdrop-blur-sm">
+              <div className="grid grid-cols-[1fr_64px_1fr] gap-2 max-w-5xl mx-auto">
+                <div className="space-y-2">
+                  {GAME_FLOORS.map(floor => <GameFloor key={floor.n} floor={floor} side="left" game={game} selected={selected} setSelected={setSelected} buildRoom={buildRoom} />)}
+                </div>
+                <div className="flex flex-col-reverse items-center rounded-2xl bg-slate-950/55 border border-white/10 overflow-hidden">
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map(n => <div key={n} className="flex-1 w-full min-h-[54px] border-t border-white/10 first:border-t-0 flex items-center justify-center text-xs font-black text-slate-300 tabular-nums">{String(n).padStart(2, '0')}</div>)}
+                </div>
+                <div className="space-y-2">
+                  {GAME_FLOORS.map(floor => <GameFloor key={floor.n} floor={floor} side="right" game={game} selected={selected} setSelected={setSelected} buildRoom={buildRoom} />)}
+                </div>
+              </div>
+            </div>
+            <GameBottomBar project={currentProject} game={game} runProject={runProject} hireStaff={hireStaff} recharge={recharge} />
+          </section>
+          <GameShop game={game} shopTab={shopTab} setShopTab={setShopTab} buyItem={buyItem} />
+        </div>
+
+        <div className="relative z-10 max-w-5xl mx-auto mt-3 grid gap-2 sm:grid-cols-4 text-xs text-slate-200">
+          {game.log.map((entry, idx) => <div key={idx} className="rounded-xl border border-white/10 bg-slate-950/35 p-3">{entry}</div>)}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function missionProgress(mission, game) {
+  if (mission.type === 'projects') return game.completedProjects;
+  if (mission.type === 'reputation') return game.reputation;
+  if (mission.type === 'staff') return game.staff;
+  if (mission.type === 'built') return game.built.length;
+  return 0;
+}
+
+function GameTopBar({ game, calendar, reset }) {
+  return (
+    <div className="relative z-10 flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 shadow-xl">
+      <div className="flex items-center gap-3 min-w-[170px]">
+        <Film className="h-8 w-8" />
+        <div><div className="text-sm font-black uppercase leading-none">Frame Up</div><div className="text-[10px] tracking-[0.2em] text-slate-400">Produções</div></div>
+      </div>
+      <GameStat icon={TrendingUp} value={`${game.level}`} label={`${game.xp.toLocaleString('pt-BR')} / 12.000 XP`} tone="cyan" />
+      <GameStat icon={Banknote} value={game.cash.toLocaleString('pt-BR')} label="caixa" tone="green" />
+      <GameStat icon={Users} value={`${game.staff} / ${game.maxStaff}`} label="equipe" tone="purple" />
+      <GameStat icon={Zap} value={`${game.energy} / ${game.maxEnergy}`} label="energia" tone="amber" />
+      <GameStat icon={Star} value={game.reputation.toFixed(1)} label="reputação" tone="pink" />
+      <GameStat icon={UserPlus} value={game.clients} label="clientes ativos" tone="sky" />
+      <GameStat icon={Calendar} value={`Mês ${calendar.month}`} label={`dia ${calendar.monthDay}/30 · semana ${calendar.weekDay}/7`} tone="cyan" />
+      <button onClick={reset} className="ml-auto inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold hover:bg-white/15"><RotateCcw className="h-4 w-4" />Resetar teste</button>
+    </div>
+  );
+}
+
+function GameStat({ icon: Icon, value, label, tone }) {
+  const tones = { cyan: 'text-cyan-300', green: 'text-green-300', purple: 'text-purple-300', amber: 'text-amber-300', pink: 'text-pink-300', sky: 'text-sky-300' };
+  return <div className="flex min-w-[120px] items-center gap-2 border-l border-white/10 pl-3"><Icon className={`h-5 w-5 ${tones[tone]}`} /><div><div className="text-lg font-black leading-none">{value}</div><div className="text-[10px] uppercase tracking-wider text-slate-400">{label}</div></div></div>;
+}
+
+function GameMissions({ game, claimMission }) {
+  return (
+    <aside className="rounded-2xl border border-white/10 bg-slate-950/75 p-4 shadow-xl">
+      <h2 className="mb-3 text-sm font-black uppercase tracking-wide">Missões</h2>
+      <div className="space-y-3">
+        {GAME_MISSIONS.map(mission => {
+          const progress = missionProgress(mission, game);
+          const done = progress >= mission.target;
+          const claimed = game.missionClaims.includes(mission.id);
+          return <button key={mission.id} onClick={() => claimMission(mission)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:bg-white/[0.08]"><div className="flex items-center justify-between gap-2"><span className="text-xs font-bold">{mission.title}</span><span className="text-purple-300 text-xs font-black">✦ {mission.reward}</span></div><div className="mt-2 h-1.5 rounded-full bg-slate-800"><div className="h-full rounded-full bg-purple-400" style={{ width: `${Math.min(100, progress / mission.target * 100)}%` }} /></div><div className="mt-1 text-[10px] text-slate-400">{claimed ? 'Recompensa coletada' : done ? 'Clique para coletar' : `${progress.toFixed(mission.type === 'reputation' ? 1 : 0)} / ${mission.target}`}</div></button>;
+        })}
+      </div>
+    </aside>
+  );
+}
+
+function GameFloor({ floor, side, game, selected, setSelected, buildRoom }) {
+  const roomId = floor.side === 'both' ? (side === 'left' ? floor.room : floor.secondary) : (floor.side === side ? floor.room : null);
+  const room = roomId ? GAME_ROOMS[roomId] : null;
+  if (!room) return <div className="min-h-[66px] rounded-xl border border-white/5 bg-slate-950/25" />;
+  return <RoomTile roomId={roomId} room={room} game={game} selected={selected} setSelected={setSelected} buildRoom={buildRoom} floor={floor.n} />;
+}
+
+function RoomTile({ roomId, room, game, selected, setSelected, buildRoom, floor }) {
+  const built = game.built.includes(roomId);
+  const canPay = game.cash >= room.buildCost;
+  const isSelected = selected === roomId;
+  const Icon = room.icon;
+  return (
+    <button onClick={() => { setSelected(roomId); if (!built && canPay) buildRoom(roomId); }} className={`relative min-h-[66px] overflow-hidden rounded-xl border text-left transition ${isSelected ? 'border-cyan-300 ring-2 ring-cyan-300/40' : 'border-white/10'} ${built ? `bg-gradient-to-br ${room.color}` : 'bg-slate-900/80 hover:bg-slate-800/90'}`}>
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,.11)_1px,transparent_1px),linear-gradient(rgba(255,255,255,.11)_1px,transparent_1px)] bg-[size:28px_28px] opacity-30" />
+      <div className="relative z-10 flex h-full items-center gap-3 p-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-black/30"><Icon className="h-5 w-5" /></div>
+        <div className="min-w-0"><div className="truncate text-xs font-black uppercase">{built ? room.name : floor <= 2 ? 'Espaço vazio' : 'Espaço disponível'}</div><div className="mt-1 text-[10px] text-white/75">{built ? `+${room.revenue}/ciclo · +${room.clients} clientes` : room.buildCost ? `Construir ${room.name}: $ ${room.buildCost.toLocaleString('pt-BR')}` : 'Clique para ativar'}</div></div>
+        {!built && <div className="ml-auto rounded-lg bg-black/35 p-2">{canPay ? <HardHat className="h-4 w-4 text-amber-300" /> : <Lock className="h-4 w-4 text-slate-400" />}</div>}
+      </div>
+    </button>
+  );
+}
+
+function GameShop({ game, shopTab, setShopTab, buyItem }) {
+  const visible = shopTab === 'decor' ? SHOP_ITEMS.slice(0, 6) : SHOP_ITEMS.slice(6);
+  return (
+    <aside className="rounded-2xl border border-white/10 bg-slate-950/80 p-4 shadow-xl">
+      <div className="mb-3 flex items-center justify-between"><h2 className="flex items-center gap-2 text-sm font-black uppercase"><ShoppingCart className="h-4 w-4" />Loja</h2><X className="h-4 w-4 text-slate-400" /></div>
+      <div className="mb-3 grid grid-cols-2 rounded-xl bg-white/10 p-1 text-xs font-bold"><button onClick={() => setShopTab('decor')} className={`rounded-lg py-2 ${shopTab === 'decor' ? 'bg-purple-600' : ''}`}>Decoração</button><button onClick={() => setShopTab('equip')} className={`rounded-lg py-2 ${shopTab === 'equip' ? 'bg-purple-600' : ''}`}>Equipamentos</button></div>
+      <div className="grid grid-cols-2 gap-3">
+        {visible.map(item => {
+          const Icon = item.icon;
+          const owned = game.inventory.includes(item.id);
+          const disabled = owned || game.cash < item.cost;
+          return <button key={item.id} disabled={disabled} onClick={() => buyItem(item)} className="rounded-xl border border-white/10 bg-white/[0.04] p-3 text-left transition enabled:hover:bg-white/[0.08] disabled:opacity-55"><div className="text-xs font-bold">{item.name}</div><div className="my-4 flex h-14 items-center justify-center rounded-lg bg-slate-900/70"><Icon className="h-8 w-8 text-amber-300" /></div><div className="flex items-center justify-between text-[11px]"><span className="font-black text-green-300">$ {item.cost}</span><span>{owned ? 'Comprado' : `+${item.reputation}★`}</span></div></button>;
+        })}
+      </div>
+    </aside>
+  );
+}
+
+function GameBottomBar({ project, game, runProject, hireStaff, recharge }) {
+  const canRun = game.energy >= project.energy;
+  return (
+    <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_1fr_1fr_1.25fr]">
+      <button onClick={runProject} disabled={!canRun} className="flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-yellow-400 to-orange-500 px-5 py-4 font-black text-slate-950 shadow-xl disabled:opacity-50"><PlayCircle className="h-6 w-6" />Produzir job</button>
+      <button onClick={hireStaff} className="flex items-center justify-center gap-3 rounded-2xl bg-blue-600 px-5 py-4 font-black text-white shadow-xl"><Users className="h-6 w-6" />Contratar</button>
+      <button onClick={recharge} className="flex items-center justify-center gap-3 rounded-2xl bg-teal-600 px-5 py-4 font-black text-white shadow-xl"><Zap className="h-6 w-6" />Recarregar</button>
+      <div className="rounded-2xl border border-white/10 bg-slate-950/75 p-4"><div className="flex items-center justify-between gap-3"><div><div className="text-[10px] uppercase tracking-widest text-slate-400">Projeto ativo</div><div className="font-black">{project.name}</div></div><ChevronRight /></div><div className="mt-3 h-2 rounded-full bg-slate-800"><div className="h-full rounded-full bg-cyan-400" style={{ width: `${game.activeProject.progress}%` }} /></div><div className="mt-1 flex items-center justify-between text-xs text-slate-300"><span>1 ação = +1 dia · 7 dias = 30 dias</span><span>{game.activeProject.progress}%</span></div></div>
     </div>
   );
 }
