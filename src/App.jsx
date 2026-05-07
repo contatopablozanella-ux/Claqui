@@ -9,7 +9,7 @@ import {
   FileText, BookOpen, BarChart3, Receipt, Wallet,
   AlertCircle, Briefcase, Package,
   ScrollText, FileSignature, KeyRound, ClipboardCheck,
-  ArrowRight, Moon, HardHat, Building2
+  ArrowRight, Moon, HardHat, Building2, LogOut, ShieldCheck
 } from 'lucide-react';
 
 /* ============================================================
@@ -704,6 +704,20 @@ const validUntilLocale = (lang, days = 15) => {
   return d.toLocaleDateString(lang === 'en' ? 'en-US' : 'pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 };
 
+const TRIAL_DAYS = 7;
+const FREE_LEAD_LIMIT = 3;
+
+const createAccessState = (user) => {
+  if (!user) return { isLoggedIn: false, isTrial: false, isPaid: false, trialDaysLeft: 0, isFullAccess: false };
+  const startedAt = user.trialStartedAt || Date.now();
+  const elapsedDays = Math.floor((Date.now() - startedAt) / 86400000);
+  const trialDaysLeft = Math.max(0, TRIAL_DAYS - elapsedDays);
+  const isTrial = trialDaysLeft > 0;
+  const isPaid = user.plan === 'paid';
+
+  return { isLoggedIn: true, isTrial, isPaid, trialDaysLeft, isFullAccess: isTrial || isPaid };
+};
+
 /* ============================================================
    APP ROOT — Theme + I18n providers
 ============================================================ */
@@ -756,33 +770,92 @@ export default function App() {
 
   // App-level state
   const [tab, setTab] = useState('pipeline');
-  const [leads, setLeads] = useState(seed);
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('claqui:currentUser');
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {}
+    return null;
+  });
+  const [leads, setLeads] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem('claqui:leads');
-      if (v) {
-        const parsed = JSON.parse(v);
-        if (Array.isArray(parsed) && parsed.length) setLeads(parsed);
-      }
-    } catch (e) {}
-    setLoaded(true);
-  }, []);
+  const access = useMemo(() => createAccessState(currentUser), [currentUser]);
+  const leadsStorageKey = currentUser?.email ? `claqui:leads:${currentUser.email}` : 'claqui:leads:guest';
 
   useEffect(() => {
-    if (!loaded) return;
-    try { localStorage.setItem('claqui:leads', JSON.stringify(leads)); } catch (e) {}
-  }, [leads, loaded]);
+    setLoaded(false);
+    if (!currentUser) {
+      setLeads([]);
+      setLoaded(true);
+      return;
+    }
+
+    try {
+      const v = localStorage.getItem(leadsStorageKey);
+      if (v) {
+        const parsed = JSON.parse(v);
+        setLeads(Array.isArray(parsed) ? parsed : []);
+      } else {
+        setLeads([]);
+      }
+    } catch (e) { setLeads([]); }
+    setLoaded(true);
+  }, [currentUser, leadsStorageKey]);
+
+  useEffect(() => {
+    if (!loaded || !currentUser) return;
+    try { localStorage.setItem(leadsStorageKey, JSON.stringify(leads)); } catch (e) {}
+  }, [leads, loaded, currentUser, leadsStorageKey]);
 
   const showToast = (message) => {
     setToast({ message });
     setTimeout(() => setToast(null), 3500);
   };
 
+  const handleLogin = ({ name, email }) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const storageKey = `claqui:user:${normalizedEmail}`;
+    let user = null;
+
+    try {
+      user = JSON.parse(localStorage.getItem(storageKey));
+    } catch (e) {}
+
+    if (!user) {
+      user = {
+        name: name.trim() || normalizedEmail.split('@')[0],
+        email: normalizedEmail,
+        plan: 'free',
+        trialStartedAt: Date.now(),
+      };
+    } else {
+      user = { ...user, name: name.trim() || user.name, email: normalizedEmail };
+    }
+
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(user));
+      localStorage.setItem('claqui:currentUser', JSON.stringify(user));
+    } catch (e) {}
+
+    setCurrentUser(user);
+    setTab('pipeline');
+  };
+
+  const handleLogout = () => {
+    try { localStorage.removeItem('claqui:currentUser'); } catch (e) {}
+    setCurrentUser(null);
+    setTab('pipeline');
+  };
+
   const addLead = (lead) => {
+    if (!access.isFullAccess && leads.length >= FREE_LEAD_LIMIT) {
+      showToast('Plano gratuito: limite de 3 leads. Libere o plano completo para continuar.');
+      return false;
+    }
     setLeads(prev => [...prev, { ...lead, id: 'l' + Date.now(), updated: Date.now() }]);
+    return true;
   };
 
   const isDark = theme === 'dark';
@@ -798,11 +871,18 @@ export default function App() {
           }`}
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif' }}
         >
-          <Header tab={tab} setTab={setTab} />
-          {tab === 'jogo'        && <GameView />}
-          {tab === 'pipeline'    && <PipelineView leads={leads} setLeads={setLeads} />}
-          {tab === 'calculadora' && <CalculatorView addLead={addLead} setTab={setTab} showToast={showToast} />}
-          {tab === 'recursos'    && <RecursosView setTab={setTab} />}
+          {!currentUser ? (
+            <LoginView onLogin={handleLogin} />
+          ) : (
+            <>
+              <Header tab={tab} setTab={setTab} user={currentUser} access={access} onLogout={handleLogout} />
+              <AccessBanner access={access} />
+              {tab === 'jogo'        && (access.isFullAccess ? <GameView /> : <PaymentRequiredView access={access} feature="Jogo" />)}
+              {tab === 'pipeline'    && <PipelineView leads={leads} setLeads={setLeads} access={access} />}
+              {tab === 'calculadora' && <CalculatorView addLead={addLead} setTab={setTab} showToast={showToast} access={access} />}
+              {tab === 'recursos'    && (access.isFullAccess ? <RecursosView setTab={setTab} /> : <PaymentRequiredView access={access} feature="Recursos" />)}
+            </>
+          )}
           {toast && <Toast {...toast} />}
 
           <style>{`
@@ -819,11 +899,136 @@ export default function App() {
   );
 }
 
+
+/* ============================================================
+   LOGIN + ACCESS GATING
+============================================================ */
+
+function LoginView({ onLogin }) {
+  const { theme, toggle } = useTheme();
+  const isDark = theme === 'dark';
+  const [form, setForm] = useState({ name: '', email: '' });
+  const canEnter = /\S+@\S+\.\S+/.test(form.email);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!canEnter) return;
+    onLogin(form);
+  };
+
+  return (
+    <main className={`min-h-screen flex items-center justify-center px-6 py-12 ${isDark ? 'bg-[#0a0a0b]' : 'bg-stone-50'}`}>
+      <div className="w-full max-w-5xl grid gap-8 lg:grid-cols-[1.05fr_0.95fr] items-center">
+        <section>
+          <div className="flex items-center gap-3">
+            <ClaquiLogo size={48} idPrefix="login" />
+            <div>
+              <h1 className={`text-2xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-stone-950'}`}>Claqui</h1>
+              <p className={`text-sm ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>Sistema operacional do produtor</p>
+            </div>
+          </div>
+
+          <h2 className={`mt-10 text-4xl sm:text-5xl font-bold tracking-[-0.045em] leading-[1.02] ${isDark ? 'text-white' : 'text-stone-950'}`}>
+            Entre pela web e organize seus clientes em minutos.
+          </h2>
+          <p className={`mt-5 max-w-xl text-base leading-relaxed ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
+            O trial libera tudo por 7 dias. Depois disso, o plano gratuito mantém o Pipeline com até 3 leads e a primeira parte da Calculadora de custos de estúdio.
+          </p>
+
+          <div className="mt-7 grid gap-3 sm:grid-cols-3">
+            {[
+              ['7 dias', 'Trial completo'],
+              ['3 leads', 'Pipeline grátis'],
+              ['Custos fixos', 'Calculadora grátis'],
+            ].map(([value, label]) => (
+              <div key={label} className={`rounded-2xl border p-4 ${isDark ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-white border-stone-200'}`}>
+                <div className={`text-xl font-bold ${isDark ? 'text-white' : 'text-stone-950'}`}>{value}</div>
+                <div className={`mt-1 text-xs ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <form onSubmit={submit} className={`rounded-[28px] border p-6 sm:p-8 shadow-xl ${isDark ? 'bg-[#141416] border-white/[0.08]' : 'bg-white border-stone-200'}`}>
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-700'}`}>
+            <KeyRound className="w-6 h-6" />
+          </div>
+          <h3 className={`mt-5 text-2xl font-semibold tracking-tight ${isDark ? 'text-white' : 'text-stone-950'}`}>Acessar minha conta</h3>
+          <p className={`mt-2 text-sm leading-relaxed ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
+            Informe seu e-mail para entrar ou criar uma conta de teste local.
+          </p>
+
+          <div className="mt-6 space-y-4">
+            <Field label="Nome">
+              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Seu nome" className={isDark ? 'w-full px-3.5 py-2.5 text-[14px] bg-white/[0.04] rounded-xl border border-white/[0.08] focus:outline-none focus:border-white/20 text-stone-100 placeholder:text-stone-500' : 'w-full px-3.5 py-2.5 text-[14px] bg-stone-100 rounded-xl border border-transparent focus:outline-none focus:border-stone-300'} />
+            </Field>
+            <Field label="E-mail">
+              <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="voce@empresa.com" className={isDark ? 'w-full px-3.5 py-2.5 text-[14px] bg-white/[0.04] rounded-xl border border-white/[0.08] focus:outline-none focus:border-white/20 text-stone-100 placeholder:text-stone-500' : 'w-full px-3.5 py-2.5 text-[14px] bg-stone-100 rounded-xl border border-transparent focus:outline-none focus:border-stone-300'} />
+            </Field>
+          </div>
+
+          <button disabled={!canEnter} className={`mt-6 w-full rounded-full px-5 py-3 text-sm font-semibold transition-all active:scale-[0.98] disabled:cursor-not-allowed ${isDark ? 'bg-white text-stone-950 hover:bg-stone-200 disabled:bg-white/10 disabled:text-stone-500' : 'bg-stone-950 text-white hover:bg-stone-800 disabled:bg-stone-300'}`}>
+            Entrar no Claqui
+          </button>
+
+          <div className="mt-4 flex items-center justify-between">
+            <span className={`text-xs ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>Pagamento será definido após o trial.</span>
+            <button type="button" onClick={toggle} className={`rounded-full p-2 ${isDark ? 'bg-white/[0.06] text-stone-300' : 'bg-stone-100 text-stone-700'}`}>{isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  );
+}
+
+function AccessBanner({ access }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
+  if (access.isFullAccess) {
+    return (
+      <div className={`no-print border-b ${isDark ? 'bg-emerald-500/[0.08] border-emerald-500/20 text-emerald-200' : 'bg-emerald-50 border-emerald-100 text-emerald-900'}`}>
+        <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center gap-2 text-xs font-medium">
+          <ShieldCheck className="w-4 h-4" /> Trial completo ativo: {access.trialDaysLeft} dia(s) restantes. Depois, o plano grátis limita Pipeline e Calculadora.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`no-print border-b ${isDark ? 'bg-amber-500/[0.08] border-amber-500/20 text-amber-200' : 'bg-amber-50 border-amber-100 text-amber-900'}`}>
+      <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center gap-2 text-xs font-medium">
+        <AlertCircle className="w-4 h-4" /> Trial encerrado. Plano gratuito: Pipeline até {FREE_LEAD_LIMIT} leads e Calculadora apenas em custos de estúdio. Pagamento será estipulado em breve.
+      </div>
+    </div>
+  );
+}
+
+function PaymentRequiredView({ feature }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
+  return (
+    <main className="max-w-3xl mx-auto px-6 py-16 no-print">
+      <div className={`rounded-[28px] border p-8 text-center ${isDark ? 'bg-[#141416] border-white/[0.08]' : 'bg-white border-stone-200 shadow-sm'}`}>
+        <div className={`mx-auto w-14 h-14 rounded-2xl flex items-center justify-center ${isDark ? 'bg-amber-500/10 text-amber-300' : 'bg-amber-50 text-amber-700'}`}>
+          <KeyRound className="w-7 h-7" />
+        </div>
+        <h1 className={`mt-5 text-2xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-stone-950'}`}>{feature} faz parte do plano completo</h1>
+        <p className={`mt-3 text-sm leading-relaxed ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>
+          Seu trial de 7 dias terminou. O plano gratuito continua com Pipeline limitado a 3 leads e custos de estúdio na Calculadora. O pagamento do plano completo ainda será estipulado.
+        </p>
+        <button disabled className={`mt-6 rounded-full px-5 py-2.5 text-sm font-semibold ${isDark ? 'bg-white/10 text-stone-500' : 'bg-stone-200 text-stone-500'}`}>Pagamento em breve</button>
+      </div>
+    </main>
+  );
+}
+
 /* ============================================================
    HEADER + TABS
 ============================================================ */
 
-function Header({ tab, setTab }) {
+function Header({ tab, setTab, user, access, onLogout }) {
   const { theme, toggle } = useTheme();
   const { lang, switchLang, t } = useI18n();
   const isDark = theme === 'dark';
@@ -860,6 +1065,13 @@ function Header({ tab, setTab }) {
           <LangBtn active={lang === 'en'} onClick={() => switchLang('en')}><FlagUS /></LangBtn>
         </div>
 
+        {user && (
+          <div className={`hidden md:flex items-center gap-2 rounded-full px-3 py-1.5 ${isDark ? 'bg-white/[0.04] text-stone-300' : 'bg-stone-100/80 text-stone-700'}`}>
+            <span className="text-[12px] font-medium max-w-[120px] truncate">{user.name}</span>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${access?.isFullAccess ? (isDark ? 'bg-emerald-500/15 text-emerald-300' : 'bg-emerald-100 text-emerald-700') : (isDark ? 'bg-amber-500/15 text-amber-300' : 'bg-amber-100 text-amber-700')}`}>{access?.isFullAccess ? 'Trial' : 'Grátis'}</span>
+          </div>
+        )}
+
         {/* THEME TOGGLE */}
         <button
           onClick={toggle}
@@ -872,6 +1084,20 @@ function Header({ tab, setTab }) {
         >
           {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
+
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            aria-label="Sair"
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+              isDark
+                ? 'bg-white/[0.06] hover:bg-white/[0.1] text-stone-300'
+                : 'bg-stone-100/80 hover:bg-stone-200/80 text-stone-700'
+            }`}
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </header>
   );
@@ -935,7 +1161,7 @@ function Toast({ message }) {
    PIPELINE VIEW
 ============================================================ */
 
-function PipelineView({ leads, setLeads }) {
+function PipelineView({ leads, setLeads, access }) {
   const { theme } = useTheme();
   const { t, lang } = useI18n();
   const isDark = theme === 'dark';
@@ -945,6 +1171,7 @@ function PipelineView({ leads, setLeads }) {
   const [query, setQuery] = useState('');
   const [draggingId, setDraggingId] = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
+  const canCreateLead = access?.isFullAccess || leads.length < FREE_LEAD_LIMIT;
 
   const filtered = query.trim()
     ? leads.filter(l => {
@@ -973,6 +1200,7 @@ function PipelineView({ leads, setLeads }) {
   const upsert = (lead) => {
     setLeads(prev => {
       const exists = prev.find(l => l.id === lead.id);
+      if (!exists && !access?.isFullAccess && prev.length >= FREE_LEAD_LIMIT) return prev;
       const next = { ...lead, updated: Date.now() };
       return exists ? prev.map(l => l.id === lead.id ? next : l) : [...prev, next];
     });
@@ -999,14 +1227,23 @@ function PipelineView({ leads, setLeads }) {
             />
           </div>
           <button
-            onClick={() => setAdding(true)}
-            className={`flex items-center gap-1.5 px-4 py-2 text-[13.5px] font-medium active:scale-[0.97] rounded-full transition-all shadow-sm ${
-              isDark ? 'bg-white text-stone-900 hover:bg-stone-200' : 'text-white bg-stone-900 hover:bg-stone-800'
+            onClick={() => canCreateLead && setAdding(true)}
+            disabled={!canCreateLead}
+            className={`flex items-center gap-1.5 px-4 py-2 text-[13.5px] font-medium active:scale-[0.97] rounded-full transition-all shadow-sm disabled:cursor-not-allowed ${
+              canCreateLead
+                ? (isDark ? 'bg-white text-stone-900 hover:bg-stone-200' : 'text-white bg-stone-900 hover:bg-stone-800')
+                : (isDark ? 'bg-white/10 text-stone-500' : 'bg-stone-200 text-stone-500')
             }`}
           >
-            <Plus className="w-4 h-4" strokeWidth={2.5} /> {t('pipeline.newLead')}
+            <Plus className="w-4 h-4" strokeWidth={2.5} /> {canCreateLead ? t('pipeline.newLead') : `Limite ${FREE_LEAD_LIMIT}/${FREE_LEAD_LIMIT}`}
           </button>
         </div>
+
+        {!access?.isFullAccess && (
+          <div className={`mb-4 rounded-2xl border px-4 py-3 text-[12.5px] ${isDark ? 'bg-amber-500/[0.08] border-amber-500/20 text-amber-200' : 'bg-amber-50 border-amber-100 text-amber-900'}`}>
+            Plano gratuito: cadastre até {FREE_LEAD_LIMIT} leads. Você tem {leads.length}/{FREE_LEAD_LIMIT}.
+          </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard icon={<Users className="w-4 h-4" />}        label={t('pipeline.stat.active')}      value={stats.total}                hint={`${stats.ativo} ${t('pipeline.stat.activeHint')}`} />
@@ -1280,7 +1517,7 @@ function Field({ label, children }) {
    CALCULATOR VIEW
 ============================================================ */
 
-function CalculatorView({ addLead, setTab, showToast }) {
+function CalculatorView({ addLead, setTab, showToast, access }) {
   const { theme } = useTheme();
   const { t, lang } = useI18n();
   const isDark = theme === 'dark';
@@ -1351,11 +1588,12 @@ function CalculatorView({ addLead, setTab, showToast }) {
   const reset = () => setCalc(calcDefaults);
 
   const handleSaveAsLead = (clientName, segment) => {
-    addLead({
+    const saved = addLead({
       name: clientName, segment, instagram: '@',
       value: Math.round(calculo.precoCliente), status: 'proposta',
       notes: t('save.notes', { dur: calc.duracaoHoras, exec: fmtMoney(calculo.custoExecucao, lang), dir: calc.trabalho.direcaoCriativa }),
     });
+    if (!saved) return;
     setSavingAsLead(false);
     showToast(`${clientName} ${t('save.toastSaved')}`);
     setTimeout(() => setTab('pipeline'), 600);
@@ -1390,7 +1628,7 @@ function CalculatorView({ addLead, setTab, showToast }) {
         </div>
       </section>
 
-      <ComparisonTable />
+      {access?.isFullAccess && <ComparisonTable />}
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
 
@@ -1406,6 +1644,9 @@ function CalculatorView({ addLead, setTab, showToast }) {
             <CalcRow icon={<Banknote className="w-4 h-4" />} label={t('calc.row.accountant')} value={calc.fixos.contadorMei} onChange={v => updateField('fixos','contadorMei', v)} />
           </CalcSection>
 
+          {!access?.isFullAccess && <FreeCalculatorNotice calculo={calculo} />}
+
+          {access?.isFullAccess && <>
           <CalcSection title={t('calc.equip.title')} subtitle={t('calc.equip.sub')} icon={<Camera className="w-4 h-4" />} total={calculo.depreciacaoMensal}>
             <CalcRow icon={<Camera className="w-4 h-4" />} label={t('calc.row.gearTotal')} value={calc.equipamento.valorTotal}     onChange={v => updateField('equipamento','valorTotal', v)} hint="câmera + lentes + acessórios" />
             <CalcRow icon={<Clock className="w-4 h-4" />}  label={t('calc.row.gearLife')}  value={calc.equipamento.vidaUtilMeses}  onChange={v => updateField('equipamento','vidaUtilMeses', v)} hint="60 = 5 anos" suffix={t('calc.suffix.months')} noCurrency />
@@ -1484,18 +1725,19 @@ function CalculatorView({ addLead, setTab, showToast }) {
           <button onClick={reset} className={`text-[12px] transition-colors ${isDark ? 'text-stone-500 hover:text-stone-100' : 'text-stone-500 hover:text-stone-900'}`}>
             {t('calc.reset')}
           </button>
+          </>}
         </div>
 
-        <ResultPanel
+        {access?.isFullAccess ? <ResultPanel
           calculo={calculo}
           direcaoCriativaPct={calc.trabalho.direcaoCriativa}
           duracao={calc.duracaoHoras}
           onSaveAsLead={() => setSavingAsLead(true)}
           onExportPDF={() => window.print()}
-        />
+        /> : <FreeCalculatorSummary calculo={calculo} />}
       </section>
 
-      {savingAsLead && (
+      {access?.isFullAccess && savingAsLead && (
         <SaveAsLeadModal
           orcamento={calculo.precoCliente}
           onClose={() => setSavingAsLead(false)}
@@ -1503,8 +1745,52 @@ function CalculatorView({ addLead, setTab, showToast }) {
         />
       )}
 
-      <PrintableProposal calc={calc} calculo={calculo} />
+      {access?.isFullAccess && <PrintableProposal calc={calc} calculo={calculo} />}
     </main>
+  );
+}
+
+
+function FreeCalculatorNotice({ calculo }) {
+  const { theme } = useTheme();
+  const { lang } = useI18n();
+  const isDark = theme === 'dark';
+
+  return (
+    <div className={`rounded-2xl border p-5 ${isDark ? 'bg-amber-500/[0.08] border-amber-500/20' : 'bg-amber-50 border-amber-100'}`}>
+      <div className="flex items-start gap-3">
+        <AlertCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
+        <div>
+          <h3 className={`text-[15px] font-semibold ${isDark ? 'text-amber-100' : 'text-amber-950'}`}>Calculadora gratuita limitada</h3>
+          <p className={`mt-1 text-[12.5px] leading-relaxed ${isDark ? 'text-amber-200/80' : 'text-amber-900/80'}`}>
+            Após o trial, você pode usar apenas a primeira parte de custos de estúdio. PDF, proposta, equipe, direção criativa e análise completa entram no plano pago.
+          </p>
+          <p className={`mt-3 text-sm font-semibold ${isDark ? 'text-amber-100' : 'text-amber-950'}`}>Custos fixos atuais: {fmtMoney(calculo.fixosMensais, lang)}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FreeCalculatorSummary({ calculo }) {
+  const { theme } = useTheme();
+  const { lang } = useI18n();
+  const isDark = theme === 'dark';
+
+  return (
+    <aside className="lg:sticky lg:top-24 self-start space-y-3">
+      <div className={`rounded-3xl p-6 border ${isDark ? 'bg-[#141416] border-white/[0.06]' : 'bg-white border-stone-200/70'}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Calculator className={`w-4 h-4 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
+          <span className={`text-[11px] font-medium tracking-[0.16em] uppercase ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>Resumo gratuito</span>
+        </div>
+        <div className={`text-[36px] font-bold tabular-nums tracking-tight leading-none ${isDark ? 'text-white' : 'text-stone-950'}`}>{fmtMoney(calculo.fixosMensais, lang)}</div>
+        <p className={`mt-2 text-[12.5px] leading-relaxed ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>Total mensal da primeira parte: custos fixos de estúdio.</p>
+        <div className={`mt-5 rounded-2xl border p-4 ${isDark ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-stone-50 border-stone-100'}`}>
+          <p className={`text-[12px] leading-relaxed ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>Exportar PDF, salvar proposta e liberar o orçamento completo ficarão disponíveis no plano pago. Valor ainda será estipulado.</p>
+        </div>
+      </div>
+    </aside>
   );
 }
 
