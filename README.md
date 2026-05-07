@@ -94,6 +94,43 @@ Em ~30 segundos, ela te dá uma URL tipo `claqui-pablo.vercel.app`. Pronto, tá 
 
 ---
 
+## Passo 4.1 — Usa o domínio claqui.app.br no lugar da URL da Vercel
+
+O ideal não é fazer “máscara” por iframe/encaminhamento. O jeito certo é conectar o domínio na Vercel para a pessoa entrar direto em `https://claqui.app.br` e continuar vendo esse endereço no navegador.
+
+### 1. Adiciona o domínio na Vercel
+
+1. Abre o projeto do Claqui na Vercel.
+2. Vai em **Settings → Domains**.
+3. Adiciona estes dois domínios:
+   - `claqui.app.br`
+   - `www.claqui.app.br`
+4. Escolhe um domínio principal. Recomendo deixar `claqui.app.br` como principal e configurar `www.claqui.app.br` para redirecionar para ele.
+
+### 2. Configura o DNS no Registro.br
+
+No painel do Registro.br, abre o domínio `claqui.app.br` e entra na área de DNS. Se estiver usando os servidores DNS do próprio Registro.br, use o modo avançado/editor de zona e crie estes registros:
+
+| Nome/Host | Tipo | Valor/Destino |
+| --- | --- | --- |
+| `@` ou vazio | `A` | `76.76.21.21` |
+| `www` | `CNAME` | `cname.vercel-dns-0.com` |
+
+> Importante: se a Vercel mostrar valores diferentes em **Settings → Domains**, siga os valores exatos que aparecerem lá. A Vercel também pode pedir um registro `TXT` de verificação; se pedir, adicione exatamente como indicado.
+
+### 3. Espera propagar e valida
+
+DNS pode levar alguns minutos para propagar. Quando a Vercel marcar o domínio como válido, ela emite o HTTPS automaticamente. Testa:
+
+```bash
+curl -I https://claqui.app.br
+curl -I https://www.claqui.app.br
+```
+
+O resultado esperado é a URL abrir com cadeado (`https`) e o endereço ficar como `claqui.app.br`, sem aparecer `vercel.app` para o usuário.
+
+---
+
 ## Passo 5 — Adiciona como app no celular (1 minuto)
 
 **iPhone:** abre a URL no Safari → toca em "Compartilhar" → "Adicionar à Tela de Início"
