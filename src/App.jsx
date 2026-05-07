@@ -58,6 +58,7 @@ const DICT = {
     'lead.subtitle':     'Detalhes do prospect',
     'lead.field.name':   'Nome do cliente',
     'lead.field.segment': 'Segmento',
+    'lead.segment.placeholder': 'Busque ou escreva o segmento',
     'lead.field.stage':  'Etapa',
     'lead.field.instagram': 'Instagram',
     'lead.field.value':  'Valor',
@@ -159,6 +160,7 @@ const DICT = {
     'save.field.name':  'Nome do cliente',
     'save.namePh':      'Ex: Casa Verani',
     'save.field.segment': 'Segmento',
+    'save.segment.placeholder': 'Busque ou escreva o segmento',
     'save.cancel':      'Cancelar',
     'save.confirm':     'Salvar lead',
     'save.toastSaved':  'salvo no Pipeline!',
@@ -250,6 +252,7 @@ const DICT = {
     'lead.subtitle':     'Prospect details',
     'lead.field.name':   'Client name',
     'lead.field.segment': 'Segment',
+    'lead.segment.placeholder': 'Search or type the segment',
     'lead.field.stage':  'Stage',
     'lead.field.instagram': 'Instagram',
     'lead.field.value':  'Value',
@@ -346,6 +349,7 @@ const DICT = {
     'save.field.name':  'Client name',
     'save.namePh':      'E.g. Casa Verani',
     'save.field.segment': 'Segment',
+    'save.segment.placeholder': 'Search or type the segment',
     'save.cancel':      'Cancel',
     'save.confirm':     'Save lead',
     'save.toastSaved':  'saved to Pipeline!',
@@ -420,7 +424,96 @@ const COLUMN_DOTS = {
   fechado:    'bg-emerald-400',
 };
 
-const SEGMENT_IDS = ['atelier', 'joalheria', 'moda', 'fragrancia', 'acessorios', 'outro'];
+const SEGMENT_OPTIONS = [
+  { id: 'atelier', labelPt: 'Ateliê de Noivas', labelEn: 'Bridal Atelier' },
+  { id: 'joalheria', labelPt: 'Joalheria', labelEn: 'Jewelry' },
+  { id: 'moda', labelPt: 'Moda Autoral', labelEn: 'Indie Fashion' },
+  { id: 'fragrancia', labelPt: 'Fragrância / Perfumaria', labelEn: 'Fragrance / Perfumery' },
+  { id: 'acessorios', labelPt: 'Acessórios', labelEn: 'Accessories' },
+  { id: 'beleza', labelPt: 'Beleza / Estética', labelEn: 'Beauty / Aesthetics' },
+  { id: 'cabeleireiro', labelPt: 'Salão de Cabeleireiro', labelEn: 'Hair Salon' },
+  { id: 'barbearia', labelPt: 'Barbearia', labelEn: 'Barbershop' },
+  { id: 'maquiagem', labelPt: 'Maquiagem', labelEn: 'Makeup' },
+  { id: 'clinica_estetica', labelPt: 'Clínica Estética', labelEn: 'Aesthetic Clinic' },
+  { id: 'spa', labelPt: 'Spa / Bem-estar', labelEn: 'Spa / Wellness' },
+  { id: 'academia', labelPt: 'Academia / Fitness', labelEn: 'Gym / Fitness' },
+  { id: 'personal_trainer', labelPt: 'Personal Trainer', labelEn: 'Personal Trainer' },
+  { id: 'nutricionista', labelPt: 'Nutricionista', labelEn: 'Nutritionist' },
+  { id: 'medicina', labelPt: 'Clínica Médica', labelEn: 'Medical Clinic' },
+  { id: 'odontologia', labelPt: 'Odontologia', labelEn: 'Dentistry' },
+  { id: 'psicologia', labelPt: 'Psicologia / Terapia', labelEn: 'Psychology / Therapy' },
+  { id: 'fisioterapia', labelPt: 'Fisioterapia', labelEn: 'Physical Therapy' },
+  { id: 'veterinaria', labelPt: 'Veterinária / Pet', labelEn: 'Veterinary / Pet' },
+  { id: 'restaurante', labelPt: 'Restaurante', labelEn: 'Restaurant' },
+  { id: 'bar', labelPt: 'Bar / Pub', labelEn: 'Bar / Pub' },
+  { id: 'cafeteria', labelPt: 'Cafeteria', labelEn: 'Coffee Shop' },
+  { id: 'padaria', labelPt: 'Padaria', labelEn: 'Bakery' },
+  { id: 'confeitaria', labelPt: 'Confeitaria', labelEn: 'Confectionery' },
+  { id: 'delivery', labelPt: 'Delivery / Dark Kitchen', labelEn: 'Delivery / Dark Kitchen' },
+  { id: 'alimentos_bebidas', labelPt: 'Alimentos e Bebidas', labelEn: 'Food and Beverage' },
+  { id: 'bebidas', labelPt: 'Bebidas / Drinks', labelEn: 'Beverages / Drinks' },
+  { id: 'hotelaria', labelPt: 'Hotel / Pousada', labelEn: 'Hotel / Inn' },
+  { id: 'turismo', labelPt: 'Turismo / Experiências', labelEn: 'Tourism / Experiences' },
+  { id: 'eventos', labelPt: 'Eventos', labelEn: 'Events' },
+  { id: 'casamentos', labelPt: 'Casamentos', labelEn: 'Weddings' },
+  { id: 'formaturas', labelPt: 'Formaturas', labelEn: 'Graduations' },
+  { id: 'shows', labelPt: 'Shows / Festivais', labelEn: 'Concerts / Festivals' },
+  { id: 'artista', labelPt: 'Artista / Criador', labelEn: 'Artist / Creator' },
+  { id: 'musica', labelPt: 'Música / Banda / DJ', labelEn: 'Music / Band / DJ' },
+  { id: 'influenciador', labelPt: 'Influenciador / Creator', labelEn: 'Influencer / Creator' },
+  { id: 'podcast', labelPt: 'Podcast / Canal', labelEn: 'Podcast / Channel' },
+  { id: 'educacao', labelPt: 'Educação / Escola', labelEn: 'Education / School' },
+  { id: 'curso_online', labelPt: 'Curso Online / Infoproduto', labelEn: 'Online Course / Info Product' },
+  { id: 'consultoria', labelPt: 'Consultoria', labelEn: 'Consulting' },
+  { id: 'coaching', labelPt: 'Coaching / Mentoria', labelEn: 'Coaching / Mentoring' },
+  { id: 'tecnologia', labelPt: 'Tecnologia / SaaS', labelEn: 'Technology / SaaS' },
+  { id: 'startup', labelPt: 'Startup', labelEn: 'Startup' },
+  { id: 'software', labelPt: 'Software / App', labelEn: 'Software / App' },
+  { id: 'ecommerce', labelPt: 'E-commerce', labelEn: 'E-commerce' },
+  { id: 'varejo', labelPt: 'Varejo / Loja Física', labelEn: 'Retail / Physical Store' },
+  { id: 'shopping', labelPt: 'Shopping / Centro Comercial', labelEn: 'Mall / Shopping Center' },
+  { id: 'supermercado', labelPt: 'Supermercado / Mercado', labelEn: 'Supermarket / Grocery' },
+  { id: 'farmacia', labelPt: 'Farmácia / Drogaria', labelEn: 'Pharmacy / Drugstore' },
+  { id: 'moveis_decoracao', labelPt: 'Móveis / Decoração', labelEn: 'Furniture / Decor' },
+  { id: 'arquitetura', labelPt: 'Arquitetura / Interiores', labelEn: 'Architecture / Interiors' },
+  { id: 'imobiliaria', labelPt: 'Imobiliária / Corretor', labelEn: 'Real Estate / Broker' },
+  { id: 'construtora', labelPt: 'Construtora / Incorporadora', labelEn: 'Construction / Developer' },
+  { id: 'engenharia', labelPt: 'Engenharia', labelEn: 'Engineering' },
+  { id: 'automotivo', labelPt: 'Automotivo / Concessionária', labelEn: 'Automotive / Dealership' },
+  { id: 'oficina', labelPt: 'Oficina / Auto Center', labelEn: 'Auto Repair / Auto Center' },
+  { id: 'locadora', labelPt: 'Locadora / Mobilidade', labelEn: 'Rental / Mobility' },
+  { id: 'transporte', labelPt: 'Transporte / Logística', labelEn: 'Transportation / Logistics' },
+  { id: 'industria', labelPt: 'Indústria', labelEn: 'Industry' },
+  { id: 'agronegocio', labelPt: 'Agronegócio', labelEn: 'Agribusiness' },
+  { id: 'energia', labelPt: 'Energia / Solar', labelEn: 'Energy / Solar' },
+  { id: 'financeiro', labelPt: 'Financeiro / Banco / Fintech', labelEn: 'Finance / Bank / Fintech' },
+  { id: 'seguros', labelPt: 'Seguros', labelEn: 'Insurance' },
+  { id: 'contabilidade', labelPt: 'Contabilidade', labelEn: 'Accounting' },
+  { id: 'advocacia', labelPt: 'Advocacia / Jurídico', labelEn: 'Law / Legal' },
+  { id: 'rh', labelPt: 'RH / Recrutamento', labelEn: 'HR / Recruiting' },
+  { id: 'marketing', labelPt: 'Marketing / Agência', labelEn: 'Marketing / Agency' },
+  { id: 'publicidade', labelPt: 'Publicidade / Comunicação', labelEn: 'Advertising / Communications' },
+  { id: 'design', labelPt: 'Design / Branding', labelEn: 'Design / Branding' },
+  { id: 'fotografia', labelPt: 'Fotografia', labelEn: 'Photography' },
+  { id: 'audiovisual', labelPt: 'Audiovisual / Produtora', labelEn: 'Audiovisual / Production Company' },
+  { id: 'grafica', labelPt: 'Gráfica / Impressão', labelEn: 'Printing / Graphics' },
+  { id: 'ong', labelPt: 'ONG / Instituto', labelEn: 'NGO / Institute' },
+  { id: 'governo', labelPt: 'Governo / Setor Público', labelEn: 'Government / Public Sector' },
+  { id: 'politica', labelPt: 'Política / Campanha', labelEn: 'Politics / Campaign' },
+  { id: 'igreja', labelPt: 'Igreja / Comunidade Religiosa', labelEn: 'Church / Religious Community' },
+  { id: 'esporte', labelPt: 'Esporte / Clube', labelEn: 'Sports / Club' },
+  { id: 'moda_praia', labelPt: 'Moda Praia', labelEn: 'Beachwear' },
+  { id: 'moda_fitness', labelPt: 'Moda Fitness', labelEn: 'Fitness Fashion' },
+  { id: 'moda_infantil', labelPt: 'Moda Infantil', labelEn: 'Children Fashion' },
+  { id: 'cosmeticos', labelPt: 'Cosméticos', labelEn: 'Cosmetics' },
+  { id: 'brinquedos', labelPt: 'Brinquedos / Infantil', labelEn: 'Toys / Kids' },
+  { id: 'games', labelPt: 'Games / Entretenimento', labelEn: 'Games / Entertainment' },
+  { id: 'livraria', labelPt: 'Livraria / Papelaria', labelEn: 'Bookstore / Stationery' },
+  { id: 'seguranca', labelPt: 'Segurança', labelEn: 'Security' },
+  { id: 'limpeza', labelPt: 'Limpeza / Serviços Gerais', labelEn: 'Cleaning / General Services' },
+  { id: 'outro', labelPt: 'Outro', labelEn: 'Other' },
+];
+
 const SEGMENT_TONES = {
   atelier:     { light: 'bg-rose-50 text-rose-700 ring-rose-200',         dark: 'bg-rose-500/10 text-rose-300 ring-rose-500/30' },
   joalheria:   { light: 'bg-amber-50 text-amber-800 ring-amber-200',      dark: 'bg-amber-500/10 text-amber-300 ring-amber-500/30' },
@@ -428,6 +521,24 @@ const SEGMENT_TONES = {
   fragrancia:  { light: 'bg-violet-50 text-violet-700 ring-violet-200',   dark: 'bg-violet-500/10 text-violet-300 ring-violet-500/30' },
   acessorios:  { light: 'bg-teal-50 text-teal-700 ring-teal-200',         dark: 'bg-teal-500/10 text-teal-300 ring-teal-500/30' },
   outro:       { light: 'bg-stone-100 text-stone-700 ring-stone-200',     dark: 'bg-stone-500/10 text-stone-300 ring-stone-500/30' },
+};
+
+const getSegmentOption = (segment) => SEGMENT_OPTIONS.find(option => option.id === segment);
+const getSegmentLabel = (segment, lang, t) => {
+  const option = getSegmentOption(segment);
+  if (option) return lang === 'en' ? option.labelEn : option.labelPt;
+  return segment ? String(segment) : t('seg.outro');
+};
+
+const findSegmentByLabel = (value, lang) => {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return null;
+  return SEGMENT_OPTIONS.find(option => (
+    option.id.toLowerCase() === normalized ||
+    option.labelPt.toLowerCase() === normalized ||
+    option.labelEn.toLowerCase() === normalized ||
+    (lang === 'en' ? option.labelEn : option.labelPt).toLowerCase() === normalized
+  ));
 };
 
 const seed = [
@@ -836,10 +947,16 @@ function PipelineView({ leads, setLeads }) {
   const [dragOverCol, setDragOverCol] = useState(null);
 
   const filtered = query.trim()
-    ? leads.filter(l =>
-        l.name.toLowerCase().includes(query.toLowerCase()) ||
-        l.instagram.toLowerCase().includes(query.toLowerCase()) ||
-        (l.notes || '').toLowerCase().includes(query.toLowerCase()))
+    ? leads.filter(l => {
+        const q = query.toLowerCase();
+        const segmentLabel = getSegmentLabel(l.segment, lang, t).toLowerCase();
+        return (
+          l.name.toLowerCase().includes(q) ||
+          l.instagram.toLowerCase().includes(q) ||
+          segmentLabel.includes(q) ||
+          (l.notes || '').toLowerCase().includes(q)
+        );
+      })
     : leads;
 
   const stats = {
@@ -983,6 +1100,7 @@ function Card({ lead, onClick, onDragStart, onDragEnd, isDragging }) {
   const { theme } = useTheme();
   const { t, lang } = useI18n();
   const isDark = theme === 'dark';
+  const segmentLabel = getSegmentLabel(lead.segment, lang, t);
   const segTones = SEGMENT_TONES[lead.segment] || SEGMENT_TONES.outro;
   const segTone = isDark ? segTones.dark : segTones.light;
 
@@ -1006,7 +1124,7 @@ function Card({ lead, onClick, onDragStart, onDragEnd, isDragging }) {
         <GripVertical className={`w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5 ${isDark ? 'text-stone-600' : 'text-stone-300'}`} />
       </div>
       <div className="mt-2 flex items-center gap-1.5">
-        <span className={`text-[10.5px] font-medium px-2 py-0.5 rounded-full ring-1 ring-inset ${segTone}`}>{t(`seg.${lead.segment}`)}</span>
+        <span className={`text-[10.5px] font-medium px-2 py-0.5 rounded-full ring-1 ring-inset ${segTone}`}>{segmentLabel}</span>
       </div>
       {lead.notes && <p className={`mt-2.5 text-[12px] leading-snug line-clamp-2 ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>{lead.notes}</p>}
       <div className={`mt-3 pt-2.5 border-t flex items-center justify-between ${isDark ? 'border-white/[0.06]' : 'border-stone-100'}`}>
@@ -1019,6 +1137,44 @@ function Card({ lead, onClick, onDragStart, onDragEnd, isDragging }) {
         <Calendar className="w-3 h-3" /> {fmtDate(lead.updated, t, lang)}
       </div>
     </div>
+  );
+}
+
+
+function SegmentSearchInput({ value, onChange, inputCls, placeholder }) {
+  const { lang, t } = useI18n();
+  const listId = useMemo(() => `segments-${Math.random().toString(36).slice(2)}`, []);
+  const [query, setQuery] = useState(() => getSegmentLabel(value, lang, t));
+
+  useEffect(() => {
+    setQuery(getSegmentLabel(value, lang, t));
+  }, [value, lang, t]);
+
+  const commitValue = (rawValue) => {
+    const typed = rawValue.trim();
+    const match = findSegmentByLabel(typed, lang);
+    onChange(match ? match.id : typed);
+  };
+
+  return (
+    <>
+      <input
+        list={listId}
+        value={query}
+        onChange={e => {
+          setQuery(e.target.value);
+          commitValue(e.target.value);
+        }}
+        onBlur={e => commitValue(e.target.value)}
+        placeholder={placeholder}
+        className={inputCls}
+      />
+      <datalist id={listId}>
+        {SEGMENT_OPTIONS.map(option => (
+          <option key={option.id} value={lang === 'en' ? option.labelEn : option.labelPt} />
+        ))}
+      </datalist>
+    </>
   );
 }
 
@@ -1065,9 +1221,7 @@ function LeadModal({ lead, onClose, onSave, onDelete }) {
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t('lead.field.segment')}>
-              <select value={form.segment} onChange={e => setForm({ ...form, segment: e.target.value })} className={`${inputCls} appearance-none`}>
-                {SEGMENT_IDS.map(id => (<option key={id} value={id}>{t(`seg.${id}`)}</option>))}
-              </select>
+              <SegmentSearchInput value={form.segment} onChange={segment => setForm({ ...form, segment })} inputCls={inputCls} placeholder={t('lead.segment.placeholder')} />
             </Field>
             <Field label={t('lead.field.stage')}>
               <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={`${inputCls} appearance-none`}>
@@ -1725,9 +1879,7 @@ function SaveAsLeadModal({ orcamento, onClose, onConfirm }) {
             <input ref={firstFieldRef} value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleConfirm()} placeholder={t('save.namePh')} className={inputCls} />
           </Field>
           <Field label={t('save.field.segment')}>
-            <select value={segment} onChange={e => setSegment(e.target.value)} className={`${inputCls} appearance-none`}>
-              {SEGMENT_IDS.map(id => (<option key={id} value={id}>{t(`seg.${id}`)}</option>))}
-            </select>
+            <SegmentSearchInput value={segment} onChange={setSegment} inputCls={inputCls} placeholder={t('save.segment.placeholder')} />
           </Field>
         </div>
         <div className={`px-6 py-4 border-t flex items-center justify-end gap-2 ${isDark ? 'bg-white/[0.02] border-white/[0.06]' : 'bg-stone-50 border-stone-100'}`}>
