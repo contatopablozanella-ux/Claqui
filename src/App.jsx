@@ -9,7 +9,7 @@ import {
   FileText, BookOpen, BarChart3, Receipt, Wallet,
   AlertCircle, Briefcase, Package,
   ScrollText, FileSignature, KeyRound, ClipboardCheck,
-  ArrowRight, Moon
+  ArrowRight, Moon, PieChart, Landmark, Building2, UserRound, ArrowDownRight
 } from 'lucide-react';
 
 /* ============================================================
@@ -33,6 +33,7 @@ const DICT = {
     // Tabs
     'tab.pipeline':    'Pipeline',
     'tab.calculadora': 'Calculadora',
+    'tab.financas':    'Finanças',
     'tab.recursos':    'Recursos',
     // Pipeline
     'pipeline.search':       'Buscar leads, @ ou notas',
@@ -226,6 +227,7 @@ const DICT = {
     'brand.tagline': 'The producer\'s operating system',
     'tab.pipeline':    'Pipeline',
     'tab.calculadora': 'Calculator',
+    'tab.financas':    'Finance',
     'tab.recursos':    'Features',
     'pipeline.search':       'Search leads, @ or notes',
     'pipeline.newLead':      'New lead',
@@ -688,6 +690,7 @@ export default function App() {
           <Header tab={tab} setTab={setTab} />
           {tab === 'pipeline'    && <PipelineView leads={leads} setLeads={setLeads} />}
           {tab === 'calculadora' && <CalculatorView addLead={addLead} setTab={setTab} showToast={showToast} />}
+          {tab === 'financas'    && <FinanceView />}
           {tab === 'recursos'    && <RecursosView setTab={setTab} />}
           {toast && <Toast {...toast} />}
 
@@ -734,6 +737,7 @@ function Header({ tab, setTab }) {
         <nav className={`flex items-center gap-1 rounded-full p-1 ${isDark ? 'bg-white/[0.04]' : 'bg-stone-100/80'}`}>
           <TabBtn active={tab === 'pipeline'}    onClick={() => setTab('pipeline')}>    <Layout className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('tab.pipeline')}</span></TabBtn>
           <TabBtn active={tab === 'calculadora'} onClick={() => setTab('calculadora')}> <Calculator className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('tab.calculadora')}</span></TabBtn>
+          <TabBtn active={tab === 'financas'}    onClick={() => setTab('financas')}>    <PieChart className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('tab.financas')}</span></TabBtn>
           <TabBtn active={tab === 'recursos'}    onClick={() => setTab('recursos')}>    <Grid3x3 className="w-3.5 h-3.5" /> <span className="hidden sm:inline">{t('tab.recursos')}</span></TabBtn>
         </nav>
 
@@ -1114,6 +1118,293 @@ function Field({ label, children }) {
     <label className="block">
       <span className={`text-[11.5px] font-medium tracking-tight uppercase block mb-1.5 ml-0.5 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>{label}</span>
       {children}
+    </label>
+  );
+}
+
+
+/* ============================================================
+   FINANCE VIEW — PF/PJ CASH CONTROL + MONTHLY GOALS
+============================================================ */
+
+const financeDefaults = {
+  monthlyGoal: 12000,
+  accounts: [
+    { id: 'a1', name: 'Conta PJ · Banco principal', type: 'pj', balance: 8200 },
+    { id: 'a2', name: 'Conta PF · Pessoal', type: 'pf', balance: 2600 },
+  ],
+  transactions: [
+    { id: 't1', description: 'Projeto editorial aprovado', type: 'income', owner: 'pj', category: 'Clientes', amount: 6800 },
+    { id: 't2', description: 'Assinaturas e softwares', type: 'expense', owner: 'pj', category: 'Operação', amount: 450 },
+    { id: 't3', description: 'Retirada para vida pessoal', type: 'income', owner: 'pf', category: 'Pró-labore', amount: 3000 },
+    { id: 't4', description: 'Moradia e contas da casa', type: 'expense', owner: 'pf', category: 'Casa', amount: 1850 },
+  ],
+};
+
+function FinanceView() {
+  const { theme } = useTheme();
+  const { lang } = useI18n();
+  const isDark = theme === 'dark';
+  const copy = lang === 'en' ? {
+    eyebrow: 'FINANCIAL CONTROL', title: 'Monthly goals, accounts and cash flow in one senior-friendly panel.',
+    desc: 'Register business and personal accounts, track every inflow and outflow, and see simple charts for the month.',
+    goal: 'Monthly revenue goal', reached: 'goal reached', inflows: 'Money in', outflows: 'Money out', balance: 'Projected balance',
+    pj: 'Business (PJ)', pf: 'Personal (PF)', accounts: 'Accounts', addAccount: 'Add account', accountName: 'Account name', initialBalance: 'Current balance',
+    movement: 'New movement', description: 'Description', amount: 'Amount', category: 'Category', income: 'Inflow', expense: 'Outflow', save: 'Save movement',
+    overview: 'Infographic overview', byPerson: 'PF vs PJ movement', recent: 'Registered movements', noTransactions: 'No movement registered yet.', remove: 'Remove', type: 'Type', flow: 'Cash flow', inflowShare: 'inflows',
+  } : {
+    eyebrow: 'CONTROLE FINANCEIRO', title: 'Metas mensais, contas e fluxo de caixa em uma aba fácil para o usuário sênior.',
+    desc: 'Cadastre contas da pessoa jurídica e física, acompanhe tudo que entra e sai e veja gráficos simples do mês.',
+    goal: 'Meta mensal de faturamento', reached: 'da meta alcançada', inflows: 'Entradas', outflows: 'Saídas', balance: 'Saldo projetado',
+    pj: 'Pessoa jurídica (PJ)', pf: 'Pessoa física (PF)', accounts: 'Contas cadastradas', addAccount: 'Cadastrar conta', accountName: 'Nome da conta', initialBalance: 'Saldo atual',
+    movement: 'Novo lançamento', description: 'Descrição', amount: 'Valor', category: 'Categoria', income: 'Entrada', expense: 'Saída', save: 'Salvar lançamento',
+    overview: 'Infográfico do mês', byPerson: 'Movimento PF x PJ', recent: 'Lançamentos cadastrados', noTransactions: 'Nenhum lançamento cadastrado ainda.', remove: 'Remover', type: 'Tipo', flow: 'Fluxo', inflowShare: 'entradas',
+  };
+
+  const [finance, setFinance] = useState(financeDefaults);
+  const [loaded, setLoaded] = useState(false);
+  const [accountForm, setAccountForm] = useState({ name: '', type: 'pj', balance: 0 });
+  const [txForm, setTxForm] = useState({ description: '', type: 'income', owner: 'pj', category: '', amount: 0 });
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('claqui:finance');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setFinance({
+          ...financeDefaults,
+          ...parsed,
+          accounts: Array.isArray(parsed.accounts) ? parsed.accounts : financeDefaults.accounts,
+          transactions: Array.isArray(parsed.transactions) ? parsed.transactions : financeDefaults.transactions,
+        });
+      }
+    } catch (e) {}
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    try { localStorage.setItem('claqui:finance', JSON.stringify(finance)); } catch (e) {}
+  }, [finance, loaded]);
+
+  const totals = useMemo(() => {
+    const income = finance.transactions.filter(t => t.type === 'income').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+    const expense = finance.transactions.filter(t => t.type === 'expense').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+    const accountBalance = finance.accounts.reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+    const byOwner = ['pj', 'pf'].reduce((acc, owner) => {
+      const rows = finance.transactions.filter(t => t.owner === owner);
+      acc[owner] = {
+        income: rows.filter(t => t.type === 'income').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0),
+        expense: rows.filter(t => t.type === 'expense').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0),
+      };
+      return acc;
+    }, {});
+    return { income, expense, projected: accountBalance + income - expense, goalPct: finance.monthlyGoal > 0 ? Math.min((income / finance.monthlyGoal) * 100, 100) : 0, byOwner };
+  }, [finance]);
+
+  const addAccount = () => {
+    if (!accountForm.name.trim()) return;
+    setFinance(prev => ({
+      ...prev,
+      accounts: [...prev.accounts, { id: 'a' + Date.now(), name: accountForm.name.trim(), type: accountForm.type, balance: parseFloat(accountForm.balance) || 0 }],
+    }));
+    setAccountForm({ name: '', type: 'pj', balance: 0 });
+  };
+
+  const addTransaction = () => {
+    if (!txForm.description.trim() || !(parseFloat(txForm.amount) > 0)) return;
+    setFinance(prev => ({
+      ...prev,
+      transactions: [{ ...txForm, id: 't' + Date.now(), amount: parseFloat(txForm.amount) || 0 }, ...prev.transactions],
+    }));
+    setTxForm({ description: '', type: 'income', owner: 'pj', category: '', amount: 0 });
+  };
+
+  const removeTransaction = (id) => setFinance(prev => ({ ...prev, transactions: prev.transactions.filter(t => t.id !== id) }));
+  const maxOwner = Math.max(totals.byOwner.pj.income, totals.byOwner.pj.expense, totals.byOwner.pf.income, totals.byOwner.pf.expense, 1);
+
+  return (
+    <main className="max-w-7xl mx-auto px-6 py-8 pb-20 space-y-8 no-print">
+      <section className={`rounded-3xl p-6 sm:p-8 overflow-hidden relative ${isDark ? 'bg-[#141416] border border-white/[0.06]' : 'bg-white border border-stone-200/70'}`} style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+        <div className="relative z-10 max-w-3xl">
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-semibold tracking-[0.14em] uppercase ${isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-700'}`}>
+            <PieChart className="w-4 h-4" /> {copy.eyebrow}
+          </div>
+          <h1 className={`mt-4 text-[30px] sm:text-[40px] font-bold tracking-tight leading-tight ${isDark ? 'text-stone-100' : 'text-stone-950'}`}>{copy.title}</h1>
+          <p className={`mt-3 text-[16px] leading-relaxed ${isDark ? 'text-stone-400' : 'text-stone-600'}`}>{copy.desc}</p>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <FinanceStat icon={<Target />} label={copy.goal} value={fmtMoney(finance.monthlyGoal, lang)}>
+          <div className="mt-3">
+            <input type="number" value={finance.monthlyGoal} onChange={e => setFinance(prev => ({ ...prev, monthlyGoal: parseFloat(e.target.value) || 0 }))} className={`w-full px-3 py-2 text-[16px] rounded-xl border focus:outline-none ${isDark ? 'bg-white/[0.04] border-white/[0.08] text-stone-100' : 'bg-stone-50 border-stone-200'}`} />
+            <div className={`mt-2 h-2 rounded-full overflow-hidden ${isDark ? 'bg-white/[0.08]' : 'bg-stone-100'}`}><div className="h-full bg-emerald-500" style={{ width: `${totals.goalPct}%` }} /></div>
+            <p className={`mt-1 text-[12px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>{Math.round(totals.goalPct)}% {copy.reached}</p>
+          </div>
+        </FinanceStat>
+        <FinanceStat icon={<ArrowUpRight />} label={copy.inflows} value={fmtMoney(totals.income, lang)} tone="emerald" />
+        <FinanceStat icon={<ArrowDownRight />} label={copy.outflows} value={fmtMoney(totals.expense, lang)} tone="rose" />
+        <FinanceStat icon={<Wallet />} label={copy.balance} value={fmtMoney(totals.projected, lang)} tone="sky" />
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className={`lg:col-span-2 rounded-3xl border p-5 ${isDark ? 'bg-[#141416] border-white/[0.06]' : 'bg-white border-stone-200/70'}`}>
+          <h2 className={`text-[18px] font-semibold tracking-tight ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>{copy.overview}</h2>
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FinanceDonut income={totals.income} expense={totals.expense} flowLabel={copy.flow} inflowLabel={copy.inflowShare} />
+            <div>
+              <h3 className={`text-[13px] font-semibold uppercase tracking-wider mb-4 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>{copy.byPerson}</h3>
+              {['pj', 'pf'].map(owner => (
+                <div key={owner} className="mb-5">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`flex items-center gap-2 text-[14px] font-semibold ${isDark ? 'text-stone-200' : 'text-stone-800'}`}>{owner === 'pj' ? <Building2 className="w-4 h-4" /> : <UserRound className="w-4 h-4" />} {owner === 'pj' ? copy.pj : copy.pf}</span>
+                    <span className={`text-[12px] ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>{fmtMoney(totals.byOwner[owner].income - totals.byOwner[owner].expense, lang)}</span>
+                  </div>
+                  <MiniBar label={copy.income} value={totals.byOwner[owner].income} max={maxOwner} color="bg-emerald-500" />
+                  <MiniBar label={copy.expense} value={totals.byOwner[owner].expense} max={maxOwner} color="bg-rose-500" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          <FinanceForm title={copy.addAccount} icon={<Landmark className="w-4 h-4" />}>
+            <FinanceText label={copy.accountName} value={accountForm.name} onChange={v => setAccountForm(prev => ({ ...prev, name: v }))} />
+            <FinanceSelect label="PF/PJ" value={accountForm.type} onChange={v => setAccountForm(prev => ({ ...prev, type: v }))} options={[['pj', copy.pj], ['pf', copy.pf]]} />
+            <FinanceNumber label={copy.initialBalance} value={accountForm.balance} onChange={v => setAccountForm(prev => ({ ...prev, balance: v }))} />
+            <button onClick={addAccount} className={`w-full mt-2 px-4 py-3 rounded-full text-[14px] font-semibold transition-all active:scale-[0.98] ${isDark ? 'bg-white text-stone-900 hover:bg-stone-200' : 'bg-stone-900 text-white hover:bg-stone-800'}`}>{copy.addAccount}</button>
+          </FinanceForm>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <FinanceForm title={copy.movement} icon={<Receipt className="w-4 h-4" />}>
+          <FinanceText label={copy.description} value={txForm.description} onChange={v => setTxForm(prev => ({ ...prev, description: v }))} />
+          <FinanceNumber label={copy.amount} value={txForm.amount} onChange={v => setTxForm(prev => ({ ...prev, amount: v }))} />
+          <FinanceText label={copy.category} value={txForm.category} onChange={v => setTxForm(prev => ({ ...prev, category: v }))} />
+          <div className="grid grid-cols-2 gap-2">
+            <FinanceSelect label={copy.type} value={txForm.type} onChange={v => setTxForm(prev => ({ ...prev, type: v }))} options={[['income', copy.income], ['expense', copy.expense]]} />
+            <FinanceSelect label="PF/PJ" value={txForm.owner} onChange={v => setTxForm(prev => ({ ...prev, owner: v }))} options={[['pj', copy.pj], ['pf', copy.pf]]} />
+          </div>
+          <button onClick={addTransaction} className={`w-full mt-2 px-4 py-3 rounded-full text-[14px] font-semibold transition-all active:scale-[0.98] ${isDark ? 'bg-emerald-300 text-emerald-950 hover:bg-emerald-200' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}>{copy.save}</button>
+        </FinanceForm>
+
+        <div className={`lg:col-span-2 rounded-3xl border p-5 ${isDark ? 'bg-[#141416] border-white/[0.06]' : 'bg-white border-stone-200/70'}`}>
+          <h2 className={`text-[18px] font-semibold tracking-tight mb-4 ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>{copy.accounts}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+            {finance.accounts.map(account => (
+              <div key={account.id} className={`rounded-2xl p-4 border ${isDark ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-stone-50 border-stone-200/70'}`}>
+                <div className={`flex items-center gap-2 text-[14px] font-semibold ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>{account.type === 'pj' ? <Building2 className="w-4 h-4" /> : <UserRound className="w-4 h-4" />} {account.name}</div>
+                <div className={`mt-2 text-[22px] font-bold tabular-nums ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>{fmtMoney(account.balance, lang)}</div>
+                <div className={`text-[12px] ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>{account.type === 'pj' ? copy.pj : copy.pf}</div>
+              </div>
+            ))}
+          </div>
+
+          <h2 className={`text-[18px] font-semibold tracking-tight mb-3 ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>{copy.recent}</h2>
+          <div className="space-y-2">
+            {finance.transactions.length === 0 && <p className={`text-[14px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>{copy.noTransactions}</p>}
+            {finance.transactions.map(tx => (
+              <div key={tx.id} className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${isDark ? 'bg-white/[0.03] border-white/[0.06]' : 'bg-white border-stone-200/70'}`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tx.type === 'income' ? (isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-700') : (isDark ? 'bg-rose-500/10 text-rose-300' : 'bg-rose-50 text-rose-700')}`}>{tx.type === 'income' ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}</div>
+                <div className="flex-1 min-w-0">
+                  <div className={`text-[14px] font-semibold truncate ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>{tx.description}</div>
+                  <div className={`text-[12px] ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>{tx.category || '—'} · {tx.owner === 'pj' ? copy.pj : copy.pf}</div>
+                </div>
+                <div className={`text-[15px] font-bold tabular-nums ${tx.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>{tx.type === 'income' ? '+' : '-'}{fmtMoney(tx.amount, lang)}</div>
+                <button onClick={() => removeTransaction(tx.id)} aria-label={copy.remove} className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? 'text-stone-500 hover:bg-white/[0.06] hover:text-stone-200' : 'text-stone-400 hover:bg-stone-100 hover:text-stone-700'}`}><X className="w-4 h-4" /></button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function FinanceStat({ icon, label, value, tone = 'stone', children }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const toneCls = {
+    stone: isDark ? 'bg-white/[0.06] text-stone-300' : 'bg-stone-100 text-stone-700',
+    emerald: isDark ? 'bg-emerald-500/10 text-emerald-300' : 'bg-emerald-50 text-emerald-700',
+    rose: isDark ? 'bg-rose-500/10 text-rose-300' : 'bg-rose-50 text-rose-700',
+    sky: isDark ? 'bg-sky-500/10 text-sky-300' : 'bg-sky-50 text-sky-700',
+  }[tone];
+  return (
+    <div className={`rounded-3xl border p-5 ${isDark ? 'bg-[#141416] border-white/[0.06]' : 'bg-white border-stone-200/70'}`}>
+      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${toneCls}`}>{icon}</div>
+      <div className={`mt-4 text-[12px] font-semibold uppercase tracking-wider ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>{label}</div>
+      <div className={`mt-1 text-[26px] font-bold tracking-tight tabular-nums ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>{value}</div>
+      {children}
+    </div>
+  );
+}
+
+function FinanceDonut({ income, expense, flowLabel, inflowLabel }) {
+  const { theme, } = useTheme();
+  const { lang } = useI18n();
+  const isDark = theme === 'dark';
+  const total = Math.max(income + expense, 1);
+  const incomePct = (income / total) * 100;
+  return (
+    <div className="flex flex-col items-center justify-center p-4">
+      <div className="relative w-56 h-56 rounded-full" style={{ background: `conic-gradient(#10b981 0 ${incomePct}%, #f43f5e ${incomePct}% 100%)` }}>
+        <div className={`absolute inset-8 rounded-full flex flex-col items-center justify-center ${isDark ? 'bg-[#141416]' : 'bg-white'}`}>
+          <span className={`text-[12px] uppercase tracking-wider ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>{flowLabel}</span>
+          <strong className={`text-[24px] tabular-nums ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>{Math.round(incomePct)}%</strong>
+          <span className={`text-[12px] ${isDark ? 'text-stone-500' : 'text-stone-500'}`}>{inflowLabel}</span>
+        </div>
+      </div>
+      <div className="mt-4 flex items-center gap-4 text-[13px]">
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />{fmtMoney(income, lang)}</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-rose-500" />{fmtMoney(expense, lang)}</span>
+      </div>
+    </div>
+  );
+}
+
+function MiniBar({ label, value, max, color }) {
+  const { theme } = useTheme();
+  const { lang } = useI18n();
+  const isDark = theme === 'dark';
+  return (
+    <div className="mb-2">
+      <div className="flex justify-between text-[12px] mb-1"><span className={isDark ? 'text-stone-400' : 'text-stone-500'}>{label}</span><span className={isDark ? 'text-stone-300' : 'text-stone-700'}>{fmtMoney(value, lang)}</span></div>
+      <div className={`h-3 rounded-full overflow-hidden ${isDark ? 'bg-white/[0.06]' : 'bg-stone-100'}`}><div className={`h-full rounded-full ${color}`} style={{ width: `${Math.max((value / max) * 100, 3)}%` }} /></div>
+    </div>
+  );
+}
+
+function FinanceForm({ title, icon, children }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  return (
+    <div className={`rounded-3xl border p-5 ${isDark ? 'bg-[#141416] border-white/[0.06]' : 'bg-white border-stone-200/70'}`}>
+      <h2 className={`flex items-center gap-2 text-[18px] font-semibold tracking-tight mb-4 ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>{icon}{title}</h2>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function FinanceText({ label, value, onChange }) {
+  return <FinanceField label={label}><input type="text" value={value} onChange={e => onChange(e.target.value)} className="finance-input" /></FinanceField>;
+}
+function FinanceNumber({ label, value, onChange }) {
+  return <FinanceField label={label}><input type="number" value={value} onChange={e => onChange(e.target.value)} className="finance-input" /></FinanceField>;
+}
+function FinanceSelect({ label, value, onChange, options }) {
+  return <FinanceField label={label}><select value={value} onChange={e => onChange(e.target.value)} className="finance-input">{options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></FinanceField>;
+}
+function FinanceField({ label, children }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  return (
+    <label className="block">
+      <span className={`text-[12px] font-semibold uppercase tracking-wider block mb-1.5 ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>{label}</span>
+      <div className={`[&_.finance-input]:w-full [&_.finance-input]:px-3 [&_.finance-input]:py-3 [&_.finance-input]:text-[16px] [&_.finance-input]:rounded-xl [&_.finance-input]:border [&_.finance-input]:focus:outline-none ${isDark ? '[&_.finance-input]:bg-white/[0.04] [&_.finance-input]:border-white/[0.08] [&_.finance-input]:text-stone-100' : '[&_.finance-input]:bg-stone-50 [&_.finance-input]:border-stone-200 [&_.finance-input]:text-stone-900'}`}>{children}</div>
     </label>
   );
 }
